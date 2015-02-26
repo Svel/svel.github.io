@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Botva Userscript
 // @namespace    http://botva.ru
-// @version      0.2
+// @version      0.2.5
 // @description  Botva
 // @author       Svel
 // @match        http://g1.botva.ru/*
@@ -9,6 +9,8 @@
 // @downloadURL  http://svel.github.io/bot-va.js
 // ==/UserScript==
 
+var strLimit = 5500 / 100 * 80;
+var minStr   = 500; // Минималка по силе для поиска в бодалке
 var baseUri = 'http://g1.botva.ru';
 var uri = {
     'profile': '/index.php',
@@ -29,12 +31,19 @@ var uri = {
         n = parseInt(n);
         return Math.floor(Math.random() * (n - m + 1)) + m;
     }
+    function isArray(x)
+    {
+        return (x.constructor && x.constructor === Array);
+    }
 
     /**
      * Смена кулона из панельки
      */
     function changeCoulon(id)
     {
+        if (!isArray(id)) {
+            //id = [id];
+        }
         var coulon = $('#coulons_bar a').has('b.'+id);
         if (!coulon) { // нет в панельке, идём через инвентарь
         }
@@ -53,6 +62,7 @@ var uri = {
         var searchButton = $('#content a[href^="/dozor.php?m=arena&"]:contains("ПОИСК:")').eq(0);
         if ((0 < searchButton.length) && searchButton.is(':visible') && (3 == searchButton.find('b').text().trim())) {
             changeCoulon('item_633');// Разрушитель
+            changeCoulon('item_816');// Колосс
             console.log('Search Arena');
             window.location = baseUri + searchButton.attr('href');
             return;
@@ -89,12 +99,13 @@ var uri = {
     if (('Текущая работа' == jobStatus) && (-1 < window.location.href.indexOf(uri.attack))) {
         if ($('#content td.half').eq(3).not(':has(.watch_no_monster)') && $('#content td.half').eq(3).has('form') && $('#content td.half').eq(3).find('form input[type="submit"]').is(':visible')) {
             changeCoulon('item_633');// Разрушитель
+            changeCoulon('item_816');// Колосс
             // Питомец
             if ((0 < $('#top_menu #pet').eq(0).has('.ico_cage_2').length) && (2 < $('#top_menu #pet .ico_cage_2').length) && (0 < $('#top_menu #pet').eq(0).has('.name .pet7').length)) {
                 $('#top_menu #pet .ico_cage_2')[0].click();
                 setTimeout(function(){
                     $('#mobile_pet_pricebtn')[0].click();
-                }, rnd(500, 1000));
+                }, rnd(1500, 2500));
                 return;
             } else if (0 < $('#content td.half').length) { // Искать
                 $('#content td.half').eq(3).find('form input[type="submit"]').trigger('click');
@@ -113,17 +124,17 @@ var uri = {
             window.location = baseUri + uri.attack;
             return;
         } else {
-            if (0 < $('#top_menu #pet').eq(0).has('.ico_cage_2').length) {
+            if ((0 < $('#top_menu #pet').eq(0).has('.ico_cage_2').length) && (2 < $('#top_menu #pet .ico_cage_2').length) && (0 < $('#top_menu #pet').eq(0).has('.name .pet7').length)) {
                 $('#top_menu #pet .ico_cage_2')[0].click();
                 setTimeout(function(){
                     $('#mobile_pet_pricebtn')[0].click();
-                }, rnd(500, 1000));
+                }, rnd(1500, 2500));
                 return;
             } else if ($('#content #watch_find').is(':visible')) {
-                changeCoulon('item_225');
+                changeCoulon('item_225'); // Кристахап
                 setTimeout(function() {
                     $('#content #watch_find').trigger('click');
-                });
+                }, rnd(500, 1500));
                 return;
             } else if (
                 (
@@ -134,7 +145,7 @@ var uri = {
                     .length
                 ) > 0
             ) {
-                if (parseInt($('#ability_training .ability .value1').eq(0).text()) < 3000) {
+                if ((parseInt($('#ability_training .ability .value1').eq(0).text()) < strLimit) && (parseInt($('#ability_training .ability .value1').eq(0).text()) >= minStr)) {
                     $('#content form input[type="submit"]').filter(function(index) { return $(this).attr('value') === "НАПАСТЬ"; }).trigger('click');
                     return;
                 } else {
@@ -147,18 +158,18 @@ var uri = {
     }
 
     // Убрать зверя
-    if ((0 < $('#top_menu #pet').eq(0).has('.ico_cage_1').length) && ((intval($('#top_menu #pet i').text()) > 70) || ((dangerStatus === 'Я в опасности!') && !(intval($('#top_menu #pet i').text()) < 60)))) {
+    if ((0 < $('#top_menu #pet').eq(0).has('.ico_cage_1').length) && ((intval($('#top_menu #pet i').text()) > 90) || ((dangerStatus === 'Я в опасности!') && !(intval($('#top_menu #pet i').text()) < 90)))) {
         $('#top_menu #pet .ico_cage_1')[0].click();
         setTimeout(function(){
             $('#mobile_pet_pricebtn')[0].click();
-        }, rnd(500, 1000));
+        }, rnd(1500, 2000));
         return;
     }
 
     // Шахта
     if (('Текущая работа' == jobStatus)) {
         if (-1 === window.location.href.indexOf(uri.mine)) {
-            changeCoulon('item_104');
+            changeCoulon('item_104'); // Копик
             window.location = baseUri + uri.mine;
             return;
         } else { // Шахтёрим
@@ -244,7 +255,21 @@ var uri = {
     for (petBlock) {
     }
     */
-    
+
+    // Ги-задания, что бы подцепить их
+    if (-1 <  window.location.href.indexOf(baseUri + '/clan_mod.php?m=task')) {
+        var date = new Date();
+        date.setHours(0);
+        date.setMinutes(0);
+        date.setSeconds(0);
+        date.setMilliseconds(0);
+        date.setDate(date.getDate()+1);
+        date.setMinutes(10);
+        localStorage.setItem('sv_bot_clan_task_timeout', (date.getTime()));
+        setTimeout(function(){ window.location = baseUri + uri.mine; }, rnd(4500, 5500));
+        return;
+    }
+
     // Напоминания
     $('#right #rmenu2 #events_scroll a').each(function(e){
         // Отрицаловки снять
@@ -261,6 +286,17 @@ var uri = {
         }
         // Пыль
         if ((0 === $(this).attr('href').indexOf(uri.dust)) && (-1 === window.location.href.indexOf('castle.php?a=workshop_mine')) && ((intval(localStorage.getItem('sv_bot_work_mine_timeout')) + (20*1000)) < (intval(Date.now())))) {
+            console.log('Going to dust page');
+            window.location = baseUri + $(this).attr('href');
+            return;
+        }
+        // Звери - летунчики
+        if ((0 === $(this).attr('href').indexOf('/castle.php?a=zoo')) && (-1 === window.location.href.indexOf('/castle.php?a=zoo'))) {
+            console.log('Идти на страницу петов-летунов');
+            return;
+        }
+        // Зайти в ги-задания, что бы подцепить их
+        if ((0 === $(this).attr('href').indexOf('/clan_mod.php?m=task')) && (-1 === window.location.href.indexOf('/clan_mod.php?m=task')) && (intval(localStorage.getItem('sv_bot_clan_task_timeout')) < (intval(Date.now())))) {
             console.log('Going to dust page');
             window.location = baseUri + $(this).attr('href');
             return;
